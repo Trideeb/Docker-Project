@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+
+  frontend:
+    build:
+      context: ./example-frontend
+      dockerfile: Dockerfile
+    ports:
+      - 5000:5000
+    networks:
+      - nginx-network
+    environment:
+      - REACT_APP_BACKEND_URL=http://localhost/api
+    container_name: frontend-2.3
+      
+  backend:
+    build:
+      context: ./example-backend
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
+      - REQUEST_ORIGIN=http://localhost
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - nginx-network
+    container_name: backend-2.3
+
+  redis:
+    image: redis
+    restart: unless-stopped
+    networks:
+      - nginx-network
+    container_name: redis-2.4
+
+  postgres:
+    image: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=postgres
+    volumes:
+      - database:/var/lib/postgresql/data
+    networks:
+      - nginx-network
+    container_name: postgres-2.6
+
+  nginx:
+    image: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    environment:
+      - NGINX_HOST=http://localhost
+    ports:
+      - 80:80
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - nginx-network
+    container_name: nginx-2.8
+
+volumes:
+  database:
+
+networks:
+  nginx-network:
+    name: nginx-network
